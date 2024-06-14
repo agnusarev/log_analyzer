@@ -5,6 +5,7 @@ import gzip
 import json
 import os
 import re
+import getpass
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime
@@ -17,7 +18,7 @@ import structlog
 
 
 def get_user() -> str:
-    return os.getlogin()
+    return getpass.getuser()
 
 
 structlog.configure(
