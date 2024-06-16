@@ -1,11 +1,11 @@
 import argparse
 import configparser
 import functools
+import getpass
 import gzip
 import json
 import os
 import re
-import getpass
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,6 +16,9 @@ from typing import Any, Dict, List, Union
 
 import structlog
 
+FILE_REGEX = r"nginx-access-ui.log-[0-9]{8}(.gz|$)"
+DATE_REGEX = r"[0-9]{8}"
+URL_REGEX = r"""((\"(GET|POST|HEAD|PUT|DELETE)\s)(?P<url>.+)(http\/(1\.1|2\.0)))"""
 
 def get_user() -> str:
     return getpass.getuser()
@@ -70,25 +73,22 @@ def read_log(path: Path) -> Generator[str, None, None]:
     log.info(f"File {path} starting to read.")
     while line := file.readline():
         yield line
-    log.info("File {path} ended reading.")
+    log.info(f"File {path} ended reading.")
     file.close()
 
 
 @logging_decorator
 def find_latest_log(path: Path) -> Union[LogFile, None]:
-    file_regex = r"nginx-access-ui.log-[0-9]{8}(.gz|$)"
-    date_regex = r"[0-9]{8}"
-
     last_date = datetime.strptime("20000101", "%Y%m%d")
     last_file = ""
-    files = [file for file in os.listdir(path) if re.match(file_regex, file)]
+    files = [file for file in os.listdir(path) if re.match(FILE_REGEX, file)]
 
     if not files:
         log.info("None files to read log.")
         return None
 
     for file in files:
-        date = datetime.strptime(re.findall(date_regex, file)[0], "%Y%m%d")
+        date = datetime.strptime(re.findall(DATE_REGEX, file)[0], "%Y%m%d")
         if date > last_date:
             last_file = file
             last_date = date
@@ -104,7 +104,7 @@ def compare(x: dict, y: dict) -> float:
 @logging_decorator
 def create_totals(iter: Generator, report_size: int) -> List:
     lineformat = re.compile(
-        r"""((\"(GET|POST|HEAD|PUT|DELETE)\s)(?P<url>.+)(http\/(1\.1|2\.0)))""",
+        URL_REGEX,
         re.IGNORECASE,
     )
     log_dict: Dict[str, list[float]] = dict()
