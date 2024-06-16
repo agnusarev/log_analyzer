@@ -43,9 +43,7 @@ def logging_decorator(func: Any) -> Any:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):  # type: ignore
         try:
-            # log.info(f"Start {func.__name__}")
             result = func(*args, **kwargs)
-            # log.info(f"End {func.__name__}")
             return result
         except KeyboardInterrupt as e:
             log.error(f"KeyboardInterrupt while running {func.__name__}. exception: {str(e)}")
@@ -69,7 +67,17 @@ class LogFile:
 def read_log(path: Path) -> Generator[str, None, None]:
     reader: Any = gzip.open if str(path).endswith(".gz") else open
 
-    file = reader(path, mode="rt", encoding="utf-8")
+    try:
+        file = reader(path, mode="rt", encoding="utf-8")
+    except FileNotFoundError:
+        log.info(f"File {path} isn't exist.")
+        raise
+    except PermissionError:
+        log.info(f"File {path} cann't be read.")
+        raise
+    except OSError as e:
+        log.error(f"Exception raised while opening file {path}: {str(e)}")
+        raise
     log.info(f"File {path} starting to read.")
     while line := file.readline():
         yield line
