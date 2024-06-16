@@ -65,6 +65,19 @@ class LogFile:
 
 @logging_decorator
 def read_log(path: Path) -> Generator[str, None, None]:
+    """Функция чтения лога.
+
+    Parameters
+    ----------
+    path : Path
+        Путь к файлу.
+
+    Yields
+    ------
+    Generator[str, None, None]
+        Возращает генератор на следующую строку.
+    """
+
     reader: Any = gzip.open if str(path).endswith(".gz") else open
 
     try:
@@ -87,6 +100,19 @@ def read_log(path: Path) -> Generator[str, None, None]:
 
 @logging_decorator
 def find_latest_log(path: Path) -> Union[LogFile, None]:
+    """Функция поиска актуального лог файла.
+
+    Parameters
+    ----------
+    path : Path
+        Путь к папке с лог файлами.
+
+    Returns
+    -------
+    Union[LogFile, None]
+        Возвращает либо LogFile, либо None если не найдет файл по заданным критериям.
+    """
+
     last_date = datetime.strptime("20000101", "%Y%m%d")
     last_file = ""
     files = [file for file in os.listdir(path) if re.match(FILE_REGEX, file)]
@@ -111,6 +137,21 @@ def compare(x: dict, y: dict) -> float:
 
 @logging_decorator
 def create_totals(iter: Generator, report_size: int) -> List:
+    """Функция для подсчета статистики log файла.
+
+    Parameters
+    ----------
+    iter : Generator
+        Генератор на читаемый файл.
+    report_size : int
+        Количество строк которое требуется вывести в отчете.
+
+    Returns
+    -------
+    List
+        Список словарей статистики на каждый url.
+    """
+
     lineformat = re.compile(
         URL_REGEX,
         re.IGNORECASE,
@@ -155,6 +196,20 @@ def create_totals(iter: Generator, report_size: int) -> List:
 
 @logging_decorator
 def create_report(totals: List, date: datetime, template_path: Path, report_path: Path) -> None:
+    """Функция создания отчета по заданному шаблону.
+
+    Parameters
+    ----------
+    totals : List
+        Статистика лога.
+    date : datetime
+        Дата лог файла.
+    template_path : Path
+        Путь к шаблону.
+    report_path : Path
+        Путь к папке с отчетами.
+    """
+
     with open(Path.joinpath(template_path, "report.html"), mode="r", encoding="utf-8") as file_template:
         template = Template(file_template.read().rstrip())
         result = template.safe_substitute(table_json=json.dumps(totals))
